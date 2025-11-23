@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  yt-dlp-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yt-dlp-api
+    ports:
+      - "5000:5000"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_BUCKET=${SUPABASE_BUCKET:-videos}
+      - PORT=5000
+      - DEBUG=${DEBUG:-False}
+    volumes:
+      # תיקייה זמנית להורדות (אופציונלי)
+      - ./downloads:/tmp/yt-dlp-downloads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+

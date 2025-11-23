@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yt-dlp API Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result.success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+        
+        .result.error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .result.show {
+            display: block;
+        }
+        
+        .result h3 {
+            margin-bottom: 10px;
+        }
+        
+        .result pre {
+            background: rgba(0,0,0,0.1);
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+        
+        .result a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .result a:hover {
+            text-decoration: underline;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .api-url-input {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 yt-dlp API Tester</h1>
+        <p class="subtitle">בדיקת API להורדת סרטונים והעלאה ל-Supabase</p>
+        
+        <div class="form-group api-url-input">
+            <label for="apiUrl">כתובת השרת (API URL):</label>
+            <input type="text" id="apiUrl" placeholder="http://localhost:5000" value="http://localhost:5000">
+        </div>
+        
+        <div class="form-group">
+            <label for="videoUrl">כתובת הסרטון (URL):</label>
+            <input type="text" id="videoUrl" placeholder="https://www.youtube.com/watch?v=..." required>
+        </div>
+        
+        <div class="form-group">
+            <label for="format">סוג הורדה:</label>
+            <select id="format">
+                <option value="video">וידאו</option>
+                <option value="audio">אודיו (MP3)</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="quality">איכות:</label>
+            <select id="quality">
+                <option value="best">טובה ביותר</option>
+                <option value="worst">נמוכה ביותר</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox" id="uploadToSupabase" checked>
+                <label for="uploadToSupabase">העלאה ל-Supabase</label>
+            </div>
+        </div>
+        
+        <button id="downloadBtn" onclick="downloadVideo()">הורד והעלה</button>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px;">מוריד ומעלה... זה עשוי לקחת כמה דקות</p>
+        </div>
+        
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        async function downloadVideo() {
+            const apiUrl = document.getElementById('apiUrl').value.trim();
+            const videoUrl = document.getElementById('videoUrl').value.trim();
+            const format = document.getElementById('format').value;
+            const quality = document.getElementById('quality').value;
+            const uploadToSupabase = document.getElementById('uploadToSupabase').checked;
+            
+            if (!videoUrl) {
+                showResult('error', 'אנא הכנס כתובת סרטון');
+                return;
+            }
+            
+            if (!apiUrl) {
+                showResult('error', 'אנא הכנס כתובת שרת');
+                return;
+            }
+            
+            // הצגת loading
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('downloadBtn').disabled = true;
+            document.getElementById('result').classList.remove('show');
+            
+            try {
+                const response = await fetch(`${apiUrl}/download`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: videoUrl,
+                        format: format,
+                        quality: quality,
+                        upload_to_supabase: uploadToSupabase
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.download && data.download.success) {
+                    let message = `<h3>✅ הצלחה!</h3>`;
+                    message += `<p><strong>כותרת:</strong> ${data.download.title || 'לא זמין'}</p>`;
+                    message += `<p><strong>משך:</strong> ${formatDuration(data.download.duration)}</p>`;
+                    message += `<p><strong>גודל קובץ:</strong> ${formatBytes(data.download.file_size)}</p>`;
+                    
+                    if (data.upload && data.upload.success) {
+                        message += `<h3 style="margin-top: 20px;">📤 העלאה ל-Supabase</h3>`;
+                        message += `<p><strong>קישור:</strong> <a href="${data.upload.public_url}" target="_blank">${data.upload.public_url}</a></p>`;
+                        message += `<p><strong>שם קובץ:</strong> ${data.upload.filename}</p>`;
+                    } else if (data.upload && !data.upload.success) {
+                        message += `<p style="color: #dc3545;"><strong>העלאה נכשלה:</strong> ${data.upload.error || 'שגיאה לא ידועה'}</p>`;
+                    }
+                    
+                    message += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    showResult('success', message);
+                } else {
+                    showResult('error', `שגיאה: ${data.error || 'שגיאה לא ידועה'}<pre>${JSON.stringify(data, null, 2)}</pre>`);
+                }
+            } catch (error) {
+                showResult('error', `שגיאת רשת: ${error.message}`);
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+                document.getElementById('downloadBtn').disabled = false;
+            }
+        }
+        
+        function showResult(type, message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type} show`;
+            resultDiv.innerHTML = message;
+        }
+        
+        function formatDuration(seconds) {
+            if (!seconds) return 'לא זמין';
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function formatBytes(bytes) {
+            if (!bytes) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        // אפשרות להקיש Enter בשדה URL
+        document.getElementById('videoUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                downloadVideo();
+            }
+        });
+    </script>
+</body>
+</html>
+
